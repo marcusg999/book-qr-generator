@@ -77,6 +77,7 @@ class BookQRGenerator:
         self.qr_image = None
         self.qr_photo = None
         self.extracted_text = ""
+        self.google_drive_link = ""
         
         self.setup_ui()
     
@@ -124,6 +125,29 @@ class BookQRGenerator:
             font=("TkDefaultFont", 8)
         )
         help_text.grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=(5, 0))
+        
+        # Google Drive Link Section
+        ttk.Label(page_frame, text="Google Drive Link (Optional):").grid(row=2, column=0, sticky=tk.W, pady=(10, 0))
+        
+        # Frame for Google Drive link input and clear button
+        link_frame = ttk.Frame(page_frame)
+        link_frame.grid(row=2, column=1, sticky=(tk.W, tk.E), padx=(10, 0), pady=(10, 0))
+        link_frame.columnconfigure(0, weight=1)
+        
+        self.drive_link_entry = ttk.Entry(link_frame)
+        self.drive_link_entry.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=(0, 5))
+        
+        ttk.Button(link_frame, text="Clear Link", command=self.clear_drive_link, width=10).grid(
+            row=0, column=1, sticky=tk.W
+        )
+        
+        link_help_text = ttk.Label(
+            page_frame,
+            text="This link will be included in the QR code (e.g., https://drive.google.com/file/d/.../view)",
+            foreground="gray",
+            font=("TkDefaultFont", 8)
+        )
+        link_help_text.grid(row=3, column=0, columnspan=2, sticky=tk.W, pady=(5, 0))
         
         # Generate Button
         button_frame = ttk.Frame(main_frame)
@@ -196,6 +220,46 @@ class BookQRGenerator:
                 self.pdf_path = None
                 self.pdf_reader = None
                 self.total_pages = 0
+    
+    def validate_google_drive_link(self, url):
+        """
+        Validate if the URL appears to be a Google Drive or Google Docs link.
+        
+        Args:
+            url: The URL string to validate
+        
+        Returns:
+            Tuple of (is_valid, warning_message)
+            - is_valid: True if URL is valid and appears to be a Google link
+            - warning_message: String with warning if not a Google link, None otherwise
+        """
+        if not url or not url.strip():
+            return True, None  # Empty is valid (optional field)
+        
+        url = url.strip()
+        
+        # Basic URL pattern check
+        if not url.startswith(('http://', 'https://')):
+            return False, "URL should start with http:// or https://"
+        
+        # Check if it's a Google Drive/Docs link
+        google_domains = [
+            'drive.google.com',
+            'docs.google.com',
+            'sheets.google.com',
+            'slides.google.com'
+        ]
+        
+        is_google_link = any(domain in url.lower() for domain in google_domains)
+        
+        if not is_google_link:
+            return True, "⚠️ This doesn't appear to be a Google Drive/Docs link. Continue anyway?"
+        
+        return True, None
+    
+    def clear_drive_link(self):
+        """Clear the Google Drive link entry field."""
+        self.drive_link_entry.delete(0, tk.END)
     
     def parse_page_input(self, page_input):
         """
@@ -290,6 +354,18 @@ class BookQRGenerator:
             messagebox.showerror("Error", str(e))
             return
         
+        # Get and validate Google Drive link
+        drive_link = self.drive_link_entry.get().strip()
+        if drive_link:
+            is_valid, warning_message = self.validate_google_drive_link(drive_link)
+            if not is_valid:
+                messagebox.showerror("Error", warning_message)
+                return
+            if warning_message:
+                response = messagebox.askyesno("Warning", warning_message)
+                if not response:
+                    return
+        
         # Extract text
         try:
             self.extracted_text = self.extract_text(page_numbers)
@@ -302,15 +378,25 @@ class BookQRGenerator:
                 )
                 return
             
+            # Prepare QR code content
+            qr_content = self.extracted_text
+            
+            # Add Google Drive link if provided
+            if drive_link:
+                qr_content = f"{self.extracted_text}\n\n---\nGoogle Drive Link: {drive_link}"
+                self.google_drive_link = drive_link
+            else:
+                self.google_drive_link = ""
+            
             # Check text length (QR codes have limitations)
-            text_length = len(self.extracted_text)
+            text_length = len(qr_content)
             
             # QR code can typically hold up to ~4296 characters (with low error correction)
             # We'll use a more conservative limit
             if text_length > 2000:
                 response = messagebox.askyesno(
                     "Large Text Warning",
-                    f"The extracted text is very large ({text_length} characters).\n"
+                    f"The combined content is very large ({text_length} characters).\n"
                     "QR codes work best with smaller amounts of text.\n"
                     "The QR code may be difficult to scan.\n\n"
                     "Do you want to continue anyway?"
@@ -320,9 +406,18 @@ class BookQRGenerator:
             
             # Update text info
             page_range_str = f"Page {page_numbers[0]}" if len(page_numbers) == 1 else f"Pages {page_numbers[0]}-{page_numbers[-1]}"
-            self.text_info_label.config(
-                text=f"Text extracted from {page_range_str}: {text_length} characters"
-            )
+            
+            # Calculate breakdown for display
+            if drive_link:
+                link_length = len(f"\n\n---\nGoogle Drive Link: {drive_link}")
+                text_only_length = len(self.extracted_text)
+                self.text_info_label.config(
+                    text=f"Text: {text_only_length} chars | Link: {link_length} chars | Total: {text_length} characters"
+                )
+            else:
+                self.text_info_label.config(
+                    text=f"Text extracted from {page_range_str}: {text_length} characters"
+                )
             
             # Generate QR code
             qr = qrcode.QRCode(
@@ -331,7 +426,7 @@ class BookQRGenerator:
                 box_size=10,
                 border=4,
             )
-            qr.add_data(self.extracted_text)
+            qr.add_data(qr_content)
             qr.make(fit=True)
             
             # Create image
@@ -340,12 +435,14 @@ class BookQRGenerator:
             # Display in canvas
             self.display_qr_code()
             
-            messagebox.showinfo(
-                "Success",
-                f"QR code generated successfully!\n"
-                f"Text length: {text_length} characters\n"
-                f"Pages: {page_range_str}"
-            )
+            success_msg = f"QR code generated successfully!\n"
+            success_msg += f"Text length: {len(self.extracted_text)} characters\n"
+            if drive_link:
+                success_msg += f"Link included: {len(drive_link)} characters\n"
+                success_msg += f"Total: {text_length} characters\n"
+            success_msg += f"Pages: {page_range_str}"
+            
+            messagebox.showinfo("Success", success_msg)
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate QR code:\n{str(e)}")
@@ -417,11 +514,13 @@ class BookQRGenerator:
         self.qr_image = None
         self.qr_photo = None
         self.extracted_text = ""
+        self.google_drive_link = ""
         
         self.pdf_path_label.config(text="No file selected", foreground="gray")
         self.pdf_info_label.config(text="")
         self.page_entry.delete(0, tk.END)
         self.page_entry.insert(0, "1")
+        self.drive_link_entry.delete(0, tk.END)
         self.text_info_label.config(text="No text extracted yet")
         
         # Clear canvas
