@@ -7,7 +7,8 @@ A lightweight desktop application that allows users to upload a PDF book and gen
 - 📄 **PDF Upload**: Browse and select PDF files from your local system
 - 📖 **Page/Chapter Selection**: Specify single pages or page ranges (e.g., "5" or "10-15")
 - 📝 **Text Extraction**: Extract text content from specified pages of the PDF
-- 📱 **QR Code Generation**: Generate QR codes containing the extracted text
+- 🔗 **Google Drive Link Integration**: Optionally include a Google Drive link in the QR code
+- 📱 **QR Code Generation**: Generate QR codes containing the extracted text and optional link
 - 💾 **Save & Preview**: Display generated QR codes in the app and save them as PNG images
 - ✅ **Cross-Platform**: Works on Windows, macOS, and Linux
 - 🛡️ **Error Handling**: Comprehensive validation and user-friendly error messages
@@ -72,18 +73,28 @@ python app.py
    - For a page range: Enter the range with a hyphen (e.g., `10-15`)
    - The default is page 1
 
-3. **Generate QR Code**:
+3. **Add Google Drive Link (Optional)**:
+   - Paste a Google Drive link in the "Google Drive Link (Optional)" field
+   - Supported formats include:
+     - `https://drive.google.com/file/d/[file_id]/view`
+     - `https://drive.google.com/open?id=[file_id]`
+     - `https://docs.google.com/document/d/[doc_id]/`
+   - Click "Clear Link" to remove the link if needed
+   - The app will validate if it's a Google link and warn you if not
+
+4. **Generate QR Code**:
    - Click the "Generate QR Code" button
    - The application will extract text from the specified page(s)
+   - If a Google Drive link is provided, it will be appended to the QR code content
    - A QR code will be generated and displayed in the preview area
-   - Character count will be shown for reference
+   - Character count breakdown will be shown (text, link, and total)
 
-4. **Save QR Code**:
+5. **Save QR Code**:
    - Click the "Save QR Code" button
    - Choose a location and filename
    - The QR code will be saved as a PNG image
 
-5. **Clear Form**:
+6. **Clear Form**:
    - Click the "Clear" button to reset the application and start over
 
 ## Technical Details
@@ -94,13 +105,34 @@ QR codes have data capacity limitations based on several factors:
 
 - **Maximum capacity**: Approximately 4,296 alphanumeric characters (theoretical maximum)
 - **Recommended limit**: ~2,000 characters for reliable scanning
-- **Warning threshold**: The application warns when text exceeds 2,000 characters
+- **Warning threshold**: The application warns when content (text + link) exceeds 2,000 characters
 - **Large text**: QR codes with large amounts of text become very dense and may be difficult to scan
 
 **Tips for best results**:
 - Use smaller page ranges for chapters with dense text
+- Consider the Google Drive link length when selecting page ranges
 - Test QR codes with a mobile scanner app after generation
-- If a QR code is too dense, try splitting it into smaller ranges
+- If a QR code is too dense, try splitting it into smaller ranges or omitting the link
+
+### Google Drive Link Format
+
+When a Google Drive link is included, the QR code content is formatted as follows:
+
+```
+[Extracted Text Content]
+
+---
+Google Drive Link: [your link]
+```
+
+The link validation accepts various Google Drive and Google Docs formats:
+- Google Drive files: `https://drive.google.com/file/d/...`
+- Google Drive folders: `https://drive.google.com/drive/folders/...`
+- Google Docs: `https://docs.google.com/document/d/...`
+- Google Sheets: `https://sheets.google.com/spreadsheets/d/...`
+- Google Slides: `https://slides.google.com/presentation/d/...`
+
+The application will warn you if the URL doesn't appear to be a Google link, but will still allow generation if you choose to proceed.
 
 ### Error Handling
 
@@ -174,8 +206,14 @@ To verify the application works correctly:
 4. ✅ Test with page ranges exceeding total pages (should show error)
 5. ✅ Test with empty/image-only pages (should show warning)
 6. ✅ Test with large text content (should show warning)
-7. ✅ Scan generated QR codes with a mobile device to verify content
-8. ✅ Test save functionality in different directories
+7. ✅ Test QR code generation without Google Drive link (text only)
+8. ✅ Test QR code generation with valid Google Drive link
+9. ✅ Test QR code generation with non-Google URL (should warn but allow)
+10. ✅ Test "Clear Link" button functionality
+11. ✅ Test character count display with and without link
+12. ✅ Scan generated QR codes with a mobile device to verify content
+13. ✅ Test save functionality in different directories
+14. ✅ Test "Clear" button to reset all fields
 
 ## License
 
