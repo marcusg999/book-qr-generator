@@ -37,6 +37,19 @@ A lightweight desktop application that allows users to upload a PDF book and gen
    - `qrcode[pil]` (version 7.4.2+) - For QR code generation
    - `Pillow` (version 10.0.0+) - For image handling
 
+## Screenshots
+
+### Initial Application Interface
+![Initial UI](https://github.com/user-attachments/assets/77a7ca7c-6a97-4191-8a9a-48f409308d60)
+
+### Application with PDF Loaded
+![PDF Loaded](https://github.com/user-attachments/assets/e0a1278b-3b9c-4c67-8b03-a17f52a47a39)
+
+### Sample Generated QR Code
+![Sample QR Code](https://github.com/user-attachments/assets/deccf4cf-ece0-47c7-ac42-586a09a10bfb)
+
+*This QR code contains text from pages 1-2 of a test PDF and can be scanned with any QR code reader.*
+
 ## Usage
 
 ### Running the Application
