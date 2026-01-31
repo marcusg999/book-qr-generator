@@ -31,7 +31,7 @@ except ImportError:
     try:
         from PyPDF2 import PdfReader
     except ImportError:
-        missing_dependencies.append("pypdf")
+        missing_dependencies.append("pypdf (or PyPDF2)")
 
 try:
     import qrcode
@@ -41,7 +41,9 @@ except ImportError:
 try:
     from PIL import Image, ImageTk
 except ImportError:
-    missing_dependencies.append("Pillow")
+    # Only add Pillow if qrcode is already satisfied (since qrcode[pil] includes Pillow)
+    if "qrcode[pil]" not in missing_dependencies:
+        missing_dependencies.append("Pillow")
 
 # If any dependencies are missing, provide helpful error message
 if missing_dependencies:
@@ -52,8 +54,9 @@ if missing_dependencies:
     print("\n📦 To install all required dependencies, run:")
     print("     pip install -r requirements.txt")
     print("\nOr install individually:")
-    print("     pip install pypdf qrcode[pil] Pillow")
-    print("\n💡 Make sure you're in the book-qr-generator directory.\n")
+    print("     pip install pypdf qrcode[pil]")
+    print("\n💡 Note: qrcode[pil] includes Pillow for image support.")
+    print("💡 Make sure you're in the book-qr-generator directory.\n")
     sys.exit(1)
 
 
