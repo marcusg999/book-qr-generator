@@ -409,8 +409,10 @@ class BookQRGenerator:
             
             # Calculate breakdown for display
             if drive_link:
-                link_length = len(f"\n\n---\nGoogle Drive Link: {drive_link}")
                 text_only_length = len(self.extracted_text)
+                # Calculate the link portion including formatting
+                link_portion = f"\n\n---\nGoogle Drive Link: {drive_link}"
+                link_length = len(link_portion)
                 self.text_info_label.config(
                     text=f"Text: {text_only_length} chars | Link: {link_length} chars | Total: {text_length} characters"
                 )
