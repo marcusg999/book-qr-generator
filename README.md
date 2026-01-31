@@ -41,15 +41,24 @@ A lightweight desktop application that allows users to upload a PDF book and gen
 ## Screenshots
 
 ### Initial Application Interface
-![Initial UI](https://github.com/user-attachments/assets/77a7ca7c-6a97-4191-8a9a-48f409308d60)
+![Initial UI](screenshots/01_initial_ui.png)
 
-### Application with PDF Loaded
-![PDF Loaded](https://github.com/user-attachments/assets/e0a1278b-3b9c-4c67-8b03-a17f52a47a39)
+*The initial interface showing the PDF file selector and page range input.*
 
-### Sample Generated QR Code
-![Sample QR Code](https://github.com/user-attachments/assets/deccf4cf-ece0-47c7-ac42-586a09a10bfb)
+### Application with PDF Loaded and Google Drive Link
+![PDF Loaded with Link](screenshots/02_with_pdf_and_link.png)
 
-*This QR code contains text from pages 1-2 of a test PDF and can be scanned with any QR code reader.*
+*Application with a PDF loaded and an optional Google Drive link entered (highlighted in yellow).*
+
+### QR Code Generated with Text and Link
+![QR Code Generated](screenshots/03_qr_generated.png)
+
+*Generated QR code preview with character count breakdown showing both text and link lengths.*
+
+### Sample QR Code
+![Sample QR Code](screenshots/04_sample_qr_code.png)
+
+*Sample QR code containing text from pages 1-2 of a test PDF along with a Google Drive link. This QR code can be scanned with any QR code reader app.*
 
 ## Usage
 
