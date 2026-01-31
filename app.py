@@ -3,20 +3,58 @@
 Book QR Generator - A lightweight desktop application for generating QR codes from PDF content.
 """
 
-import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
-from tkinter import PhotoImage
+import sys
 import os
 import re
 from io import BytesIO
 
+# Check for required dependencies with helpful error messages
+missing_dependencies = []
+
+try:
+    import tkinter as tk
+    from tkinter import filedialog, messagebox, ttk
+    from tkinter import PhotoImage
+except ImportError:
+    print("\n❌ ERROR: tkinter is not installed.")
+    print("\ntkinter is required for the graphical user interface.")
+    print("\nTo install tkinter:")
+    print("  • Ubuntu/Debian: sudo apt-get install python3-tk")
+    print("  • Fedora: sudo dnf install python3-tkinter")
+    print("  • macOS: tkinter is included with Python from python.org")
+    print("  • Windows: tkinter is included with standard Python installation")
+    sys.exit(1)
+
 try:
     from pypdf import PdfReader
 except ImportError:
-    from PyPDF2 import PdfReader
+    try:
+        from PyPDF2 import PdfReader
+    except ImportError:
+        missing_dependencies.append("pypdf")
 
-import qrcode
-from PIL import Image, ImageTk
+try:
+    import qrcode
+except ImportError:
+    missing_dependencies.append("qrcode[pil]")
+
+try:
+    from PIL import Image, ImageTk
+except ImportError:
+    missing_dependencies.append("Pillow")
+
+# If any dependencies are missing, provide helpful error message
+if missing_dependencies:
+    print("\n❌ ERROR: Required Python packages are not installed.\n")
+    print("Missing packages:")
+    for dep in missing_dependencies:
+        print(f"  • {dep}")
+    print("\n📦 To install all required dependencies, run:")
+    print("     pip install -r requirements.txt")
+    print("\nOr install individually:")
+    print("     pip install pypdf qrcode[pil] Pillow")
+    print("\n💡 Make sure you're in the book-qr-generator directory.\n")
+    sys.exit(1)
 
 
 class BookQRGenerator:
