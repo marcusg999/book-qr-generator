@@ -70,7 +70,7 @@ class BookQRGenerator:
         self.root.geometry("700x800")
         self.root.resizable(True, True)
         
-        # Application state
+        # Application state for PDF mode
         self.pdf_path = None
         self.pdf_reader = None
         self.total_pages = 0
@@ -79,10 +79,17 @@ class BookQRGenerator:
         self.extracted_text = ""
         self.google_drive_link = ""
         
+        # Application state for URL mode
+        self.url_qr_image = None
+        self.url_qr_photo = None
+        self.url_input = None
+        self.url_qr_label = None
+        self.url_char_count_label = None
+        
         self.setup_ui()
     
     def setup_ui(self):
-        """Set up the user interface."""
+        """Set up the user interface with tabbed interface."""
         # Main container with padding
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -91,10 +98,40 @@ class BookQRGenerator:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(0, weight=1)
+        
+        # Create notebook (tabbed interface)
+        self.notebook = ttk.Notebook(main_frame)
+        self.notebook.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Create tabs
+        self.pdf_tab = ttk.Frame(self.notebook, padding="10")
+        self.url_tab = ttk.Frame(self.notebook, padding="10")
+        
+        self.notebook.add(self.pdf_tab, text="PDF to QR Code")
+        self.notebook.add(self.url_tab, text="URL to QR Code")
+        
+        # Set up individual tabs
+        self.setup_pdf_tab()
+        self.setup_url_tab()
+    
+    def setup_pdf_tab(self):
+        """Set up the PDF to QR Code tab."""
+        # Configure grid weights for resizing
+        self.pdf_tab.columnconfigure(0, weight=1)
+        
+        # Help text at top
+        help_label = ttk.Label(
+            self.pdf_tab,
+            text="Extract text from PDF pages and generate QR codes",
+            foreground="gray",
+            font=("TkDefaultFont", 9, "italic")
+        )
+        help_label.grid(row=0, column=0, sticky=tk.W, pady=(0, 10))
         
         # PDF Selection Section
-        pdf_frame = ttk.LabelFrame(main_frame, text="1. Select PDF File", padding="10")
-        pdf_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        pdf_frame = ttk.LabelFrame(self.pdf_tab, text="1. Select PDF File", padding="10")
+        pdf_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
         pdf_frame.columnconfigure(1, weight=1)
         
         ttk.Button(pdf_frame, text="Browse PDF", command=self.browse_pdf).grid(
@@ -108,8 +145,8 @@ class BookQRGenerator:
         self.pdf_info_label.grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=(5, 0))
         
         # Page Selection Section
-        page_frame = ttk.LabelFrame(main_frame, text="2. Select Page(s)", padding="10")
-        page_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        page_frame = ttk.LabelFrame(self.pdf_tab, text="2. Select Page(s)", padding="10")
+        page_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
         page_frame.columnconfigure(1, weight=1)
         
         ttk.Label(page_frame, text="Page Number or Range:").grid(row=0, column=0, sticky=tk.W)
@@ -150,8 +187,8 @@ class BookQRGenerator:
         link_help_text.grid(row=3, column=0, columnspan=2, sticky=tk.W, pady=(5, 0))
         
         # Generate Button
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        button_frame = ttk.Frame(self.pdf_tab)
+        button_frame.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
         button_frame.columnconfigure(0, weight=1)
         button_frame.columnconfigure(1, weight=1)
         button_frame.columnconfigure(2, weight=1)
@@ -169,18 +206,18 @@ class BookQRGenerator:
         )
         
         # Text Info Section
-        info_frame = ttk.LabelFrame(main_frame, text="Text Information", padding="10")
-        info_frame.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        info_frame = ttk.LabelFrame(self.pdf_tab, text="Text Information", padding="10")
+        info_frame.grid(row=4, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
         
         self.text_info_label = ttk.Label(info_frame, text="No text extracted yet")
         self.text_info_label.grid(row=0, column=0, sticky=tk.W)
         
         # QR Code Preview Section
-        qr_frame = ttk.LabelFrame(main_frame, text="QR Code Preview", padding="10")
-        qr_frame.grid(row=4, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        qr_frame = ttk.LabelFrame(self.pdf_tab, text="QR Code Preview", padding="10")
+        qr_frame.grid(row=5, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
         qr_frame.columnconfigure(0, weight=1)
         qr_frame.rowconfigure(0, weight=1)
-        main_frame.rowconfigure(4, weight=1)
+        self.pdf_tab.rowconfigure(5, weight=1)
         
         # Canvas for QR code display
         self.qr_canvas = tk.Canvas(qr_frame, width=400, height=400, bg="white", relief=tk.SUNKEN, borderwidth=2)
@@ -194,6 +231,253 @@ class BookQRGenerator:
             font=("TkDefaultFont", 12),
             tags="placeholder"
         )
+    
+    def setup_url_tab(self):
+        """Set up the URL to QR Code tab."""
+        # Configure grid weights for resizing
+        self.url_tab.columnconfigure(0, weight=1)
+        self.url_tab.rowconfigure(4, weight=1)
+        
+        # Help text at top
+        help_label = ttk.Label(
+            self.url_tab,
+            text="Quickly convert any URL or text into a scannable QR code",
+            foreground="gray",
+            font=("TkDefaultFont", 9, "italic")
+        )
+        help_label.grid(row=0, column=0, sticky=tk.W, pady=(0, 10))
+        
+        # URL Input Section
+        url_frame = ttk.LabelFrame(self.url_tab, text="Enter URL or Text", padding="10")
+        url_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        url_frame.columnconfigure(0, weight=1)
+        
+        ttk.Label(url_frame, text="URL or Text:").grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        
+        # Text entry for URL/text input
+        self.url_input = tk.Text(url_frame, height=3, wrap=tk.WORD)
+        self.url_input.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.url_input.insert("1.0", "https://example.com or any text")
+        self.url_input.config(foreground="gray")
+        
+        # Bind events for placeholder behavior
+        self.url_input.bind("<FocusIn>", self.on_url_focus_in)
+        self.url_input.bind("<FocusOut>", self.on_url_focus_out)
+        self.url_input.bind("<KeyRelease>", self.update_char_count)
+        
+        # Character count label
+        self.url_char_count_label = ttk.Label(url_frame, text="Character Count: 0", foreground="blue")
+        self.url_char_count_label.grid(row=2, column=0, sticky=tk.W)
+        
+        # Button frame
+        button_frame = ttk.Frame(self.url_tab)
+        button_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        button_frame.columnconfigure(0, weight=1)
+        button_frame.columnconfigure(1, weight=1)
+        
+        ttk.Button(button_frame, text="Generate QR Code", command=self.generate_qr_from_url).grid(
+            row=0, column=0, sticky=(tk.W, tk.E), padx=(0, 5)
+        )
+        
+        ttk.Button(button_frame, text="Clear", command=self.clear_url_input).grid(
+            row=0, column=1, sticky=(tk.W, tk.E), padx=(5, 0)
+        )
+        
+        # QR Code Preview Section
+        qr_frame = ttk.LabelFrame(self.url_tab, text="QR Code Preview", padding="10")
+        qr_frame.grid(row=4, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        qr_frame.columnconfigure(0, weight=1)
+        qr_frame.rowconfigure(0, weight=1)
+        
+        # Canvas for QR code display
+        self.url_qr_canvas = tk.Canvas(qr_frame, width=400, height=400, bg="white", relief=tk.SUNKEN, borderwidth=2)
+        self.url_qr_canvas.grid(row=0, column=0)
+        
+        # Initial message on canvas
+        self.url_qr_canvas.create_text(
+            200, 200,
+            text="QR code will appear here",
+            fill="gray",
+            font=("TkDefaultFont", 12),
+            tags="placeholder"
+        )
+        
+        # Save button
+        ttk.Button(self.url_tab, text="Save QR Code", command=self.save_url_qr_code).grid(
+            row=5, column=0, sticky=(tk.W, tk.E), pady=(0, 10)
+        )
+    
+    def on_url_focus_in(self, event):
+        """Handle focus in event for URL input (remove placeholder)."""
+        if self.url_input.get("1.0", "end-1c") == "https://example.com or any text":
+            self.url_input.delete("1.0", tk.END)
+            self.url_input.config(foreground="black")
+    
+    def on_url_focus_out(self, event):
+        """Handle focus out event for URL input (restore placeholder if empty)."""
+        if not self.url_input.get("1.0", "end-1c").strip():
+            self.url_input.insert("1.0", "https://example.com or any text")
+            self.url_input.config(foreground="gray")
+    
+    def update_char_count(self, event=None):
+        """Update character count label."""
+        content = self.url_input.get("1.0", "end-1c")
+        if content == "https://example.com or any text":
+            count = 0
+        else:
+            count = len(content)
+        self.url_char_count_label.config(text=f"Character Count: {count}")
+    
+    def validate_url(self, url):
+        """
+        Basic URL validation and formatting.
+        
+        Args:
+            url: The URL string to validate
+        
+        Returns:
+            Formatted URL string
+        """
+        url = url.strip()
+        
+        # If it looks like a URL but doesn't have protocol, add https://
+        if url and not url.startswith(('http://', 'https://', 'ftp://')):
+            # Check if it looks like a domain (contains a dot and no spaces)
+            if '.' in url and ' ' not in url:
+                url = 'https://' + url
+        
+        return url
+    
+    def generate_qr_from_url(self):
+        """Generate QR code from URL/text input."""
+        # Get content from input
+        content = self.url_input.get("1.0", "end-1c")
+        
+        # Check if placeholder is still there
+        if content == "https://example.com or any text" or not content.strip():
+            messagebox.showwarning("Warning", "Please enter a URL or text to generate QR code")
+            return
+        
+        # Validate and format URL if it looks like one
+        content = self.validate_url(content)
+        
+        # Check length
+        content_length = len(content)
+        if content_length > 2000:
+            response = messagebox.askyesno(
+                "Large Text Warning",
+                f"The content is very large ({content_length} characters).\n"
+                "QR codes work best with smaller amounts of text.\n"
+                "The QR code may be difficult to scan.\n\n"
+                "Do you want to continue anyway?"
+            )
+            if not response:
+                return
+        
+        try:
+            # Generate QR code with high error correction for URLs
+            qr = qrcode.QRCode(
+                version=None,  # Auto-size
+                error_correction=qrcode.constants.ERROR_CORRECT_H,  # High error correction
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(content)
+            qr.make(fit=True)
+            
+            # Create image
+            self.url_qr_image = qr.make_image(fill_color="black", back_color="white")
+            
+            # Display in canvas
+            self.display_url_qr_code()
+            
+            messagebox.showinfo("Success", f"QR code generated successfully!\nContent length: {content_length} characters")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to generate QR code:\n{str(e)}")
+    
+    def display_url_qr_code(self):
+        """Display the URL QR code on the canvas."""
+        if not self.url_qr_image:
+            return
+        
+        # Remove placeholder text
+        self.url_qr_canvas.delete("placeholder")
+        
+        # Resize image to fit canvas (max 380x380 to leave some padding)
+        img_width, img_height = self.url_qr_image.size
+        max_size = 380
+        
+        if img_width > max_size or img_height > max_size:
+            ratio = min(max_size / img_width, max_size / img_height)
+            new_width = int(img_width * ratio)
+            new_height = int(img_height * ratio)
+            display_image = self.url_qr_image.resize((new_width, new_height), Image.LANCZOS)
+        else:
+            display_image = self.url_qr_image
+        
+        # Convert to PhotoImage
+        self.url_qr_photo = ImageTk.PhotoImage(display_image)
+        
+        # Clear canvas and display image
+        self.url_qr_canvas.delete("all")
+        canvas_width = self.url_qr_canvas.winfo_width()
+        canvas_height = self.url_qr_canvas.winfo_height()
+        
+        # If canvas dimensions are not yet set, use defaults
+        if canvas_width <= 1:
+            canvas_width = 400
+        if canvas_height <= 1:
+            canvas_height = 400
+        
+        # Center the image
+        x = canvas_width // 2
+        y = canvas_height // 2
+        self.url_qr_canvas.create_image(x, y, image=self.url_qr_photo, anchor=tk.CENTER)
+    
+    def clear_url_input(self):
+        """Clear URL input and reset preview."""
+        self.url_input.delete("1.0", tk.END)
+        self.url_input.insert("1.0", "https://example.com or any text")
+        self.url_input.config(foreground="gray")
+        
+        # Clear QR code
+        self.url_qr_image = None
+        self.url_qr_photo = None
+        
+        # Reset canvas
+        self.url_qr_canvas.delete("all")
+        self.url_qr_canvas.create_text(
+            200, 200,
+            text="QR code will appear here",
+            fill="gray",
+            font=("TkDefaultFont", 12),
+            tags="placeholder"
+        )
+        
+        # Reset character count
+        self.url_char_count_label.config(text="Character Count: 0")
+    
+    def save_url_qr_code(self):
+        """Save the generated QR code from URL."""
+        if not self.url_qr_image:
+            messagebox.showwarning("Warning", "Please generate a QR code first")
+            return
+        
+        # Open save dialog
+        file_path = filedialog.asksaveasfilename(
+            title="Save QR Code",
+            defaultextension=".png",
+            initialfile="qrcode_url.png",
+            filetypes=[("PNG files", "*.png"), ("All files", "*.*")]
+        )
+        
+        if file_path:
+            try:
+                self.url_qr_image.save(file_path)
+                messagebox.showinfo("Success", f"QR code saved successfully to:\n{file_path}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save QR code:\n{str(e)}")
     
     def browse_pdf(self):
         """Open file dialog to select a PDF file."""
